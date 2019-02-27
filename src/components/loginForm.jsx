@@ -1,26 +1,35 @@
-import React, { Component } from "react";
-import { Route } from "react-router-dom";
+import React from "react";
+import Joi from "joi-browser";
+import Form from "./common/form";
 
-class LoginForm extends Component {
-  handleSubmit = e => {
-    e.preventDefault();
+class LoginForm extends Form {
+  state = {
+    data: { username: "", password: "" },
+    errors: {}
+  };
 
+  schema = {
+    username: Joi.string()
+      .required()
+      .label("Username"),
+    password: Joi.string()
+      .required()
+      .label("Password")
+  };
+
+  doSubmit = () => {
+    //Call to the server
     console.log("Submitted");
   };
+
   render() {
     return (
       <div>
         <h1>Login</h1>
         <form onSubmit={this.handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="username">Username</label>
-            <input id="username" type="text" className="form-control" />
-          </div>
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
-            <input id="password" type="text" className="form-control" />
-          </div>
-          <button className="btn btn-primary">Login</button>
+          {this.renderInput("username", "Username")}
+          {this.renderInput("password", "Password", "password")}
+          {this.renderButton("Login")}
         </form>
       </div>
     );
