@@ -1,13 +1,15 @@
 import React, { Component } from "react";
-import { getMovies } from "../services/fakeMovieService";
+import { getMovies, deleteMovie } from "../services/movieService";
 import { Link } from "react-router-dom";
+import { toast } from "react-toastify";
 import ListGroup from "./common/listGroup";
 import Pagination from "./common/pagination";
 import { paginate } from "../utils/paginate";
-import { getGenres } from "../services/fakeGenreService";
+import { getGenres } from "../services/genreService";
 import MoviesTable from "./moviesTable";
 import _ from "lodash";
 import SearchBox from "./common/searchBox";
+import logger from "../services/logService";
 
 class Movies extends Component {
   state = {
@@ -20,14 +22,29 @@ class Movies extends Component {
     sortColumn: { path: "title", order: "asc" }
   };
 
-  componentDidMount() {
-    const genres = [{ _id: "", name: "All Genres" }, ...getGenres()];
-    this.setState({ genres, movies: getMovies() });
+  async componentDidMount() {
+    const { data } = await getGenres();
+    const genres = [{ _id: "", name: "All Genres" }, ...data];
+    const { data: movies } = await getMovies();
+    this.setState({ genres, movies });
   }
 
-  handleDelete = movie => {
-    const movies = this.state.movies.filter(m => m._id !== movie._id);
+  handleDelete = async movie => {
+    const originalMovies = this.state.movies;
+
+    const movies = originalMovies.filter(m => m._id !== movie._id);
     this.setState({ movies });
+
+    try {
+      deleteMovie(movie._id);
+    } catch (ex) {
+      if (ex.response && ex.response.status === 404) {
+        toast.error("This movie has already been deleted.");
+      } else {
+        logger.log(ex);
+      }
+      logger.log(ex);
+    }
   };
 
   handleLike = movie => {
@@ -81,7 +98,7 @@ class Movies extends Component {
   render() {
     const { length: movieCount } = this.state.movies;
     const { pageSize, currentPage, sortColumn, searchQuery } = this.state;
-
+    const { user } = this.props;
     if (movieCount === 0) {
       return <h1>There are no movies in the database.</h1>;
     }
@@ -100,11 +117,13 @@ class Movies extends Component {
           </div>
 
           <div className="col">
-            <div className="col">
-              <Link to="/movies/new" className="btn btn-primary m-2">
-                New Movie
-              </Link>
-            </div>
+            {user && (
+              <div className="col">
+                <Link to="/movies/new" className="btn btn-primary m-2">
+                  New Movie
+                </Link>
+              </div>
+            )}
             <p>There are {totalCount} movies in the database</p>
             <SearchBox value={searchQuery} onChange={this.handleSearch} />
             <MoviesTable
